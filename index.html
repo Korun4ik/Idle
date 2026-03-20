@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Люк Поглотитель</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #d7d2c4;
+      --panel: rgba(24, 26, 30, 0.82);
+      --panel-strong: rgba(13, 15, 19, 0.94);
+      --text: #f3efe5;
+      --accent: #ffc857;
+      --accent-2: #5bd1a6;
+      --danger: #ff6b6b;
+      --muted: rgba(255, 255, 255, 0.64);
+      --line: rgba(255, 255, 255, 0.12);
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: linear-gradient(180deg, #ece4d4 0%, #cbbf9d 100%);
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+      user-select: none;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hud {
+      position: absolute;
+      top: env(safe-area-inset-top, 0);
+      left: 0;
+      right: 0;
+      padding: 14px 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .hud-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .card {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .fuel {
+      padding: 10px 12px 12px;
+    }
+
+    .bar {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--danger), var(--accent));
+      border-radius: inherit;
+      transform-origin: left center;
+    }
+
+    .hint {
+      align-self: center;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #fff9e8;
+      opacity: 0.92;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: calc(env(safe-area-inset-top, 0) + 18px) 16px calc(env(safe-area-inset-bottom, 0) + 18px);
+      background: rgba(10, 11, 14, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .screen.visible {
+      display: flex;
+    }
+
+    .panel {
+      width: min(100%, 440px);
+      max-height: 100%;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      overflow: auto;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .money-pill {
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 200, 87, 0.14);
+      color: #ffe6a7;
+      border: 1px solid rgba(255, 200, 87, 0.28);
+      font-weight: 800;
+    }
+
+    .button-row,
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #111318;
+      background: linear-gradient(180deg, #ffe39a 0%, #ffc857 100%);
+      box-shadow: 0 10px 24px rgba(255, 200, 87, 0.3);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      box-shadow: none;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .results-grid .card {
+      padding: 12px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .big {
+      margin-top: 4px;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .tree-wrap {
+      position: relative;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 12px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    #treeLines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .tree {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 12px;
+      padding: 8px;
+      z-index: 1;
+    }
+
+    .upgrade {
+      position: relative;
+      min-height: 120px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(17, 20, 24, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .upgrade.locked {
+      opacity: 0.55;
+    }
+
+    .upgrade.bought {
+      border-color: rgba(91, 209, 166, 0.55);
+      box-shadow: inset 0 0 0 1px rgba(91, 209, 166, 0.2);
+    }
+
+    .upgrade-name {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .upgrade-desc {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .upgrade-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: #e4fef0;
+    }
+
+    .upgrade button {
+      padding: 10px 12px;
+      font-size: 14px;
+      border-radius: 12px;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 420px) {
+      .title { font-size: 24px; }
+      .panel { padding: 16px; border-radius: 20px; }
+      .results-grid { grid-template-columns: 1fr; }
+      .tree { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="hud-row">
+        <div class="card stat">
+          <div class="stat-label">Деньги за заезд</div>
+          <div class="stat-value" id="runMoney">0 ₽</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Размер люка</div>
+          <div class="stat-value" id="holeSize">1.0x</div>
+        </div>
+      </div>
+      <div class="card fuel">
+        <div class="stat-label">Топливо</div>
+        <div class="bar"><div class="bar-fill" id="fuelFill"></div></div>
+      </div>
+      <div class="card hint" id="touchHint">Веди пальцем по экрану, чтобы двигать люк.</div>
+    </div>
+
+    <div class="screen visible" id="startScreen">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="title">Люк Поглотитель</div>
+            <p class="subtitle">Собирай мусор, расти и успевай тратить топливо с умом. Поглощать можно только то, что меньше твоего люка.</p>
+          </div>
+          <div class="money-pill" id="bankValue">0 ₽</div>
+        </div>
+        <div class="stack">
+          <button id="startButton">Начать игру</button>
+          <button class="secondary" id="openUpgradeButton">Прокачка</button>
+        </div>
+        <p class="footer-note">Поле всегда помещается на экран, камера не двигается, а прогресс улучшений сохраняется в памяти устройства.</p>
+      </div>
+    </div>
+
+    <div class="screen" id="resultScreen">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="title">Топливо закончилось</div>
+            <p class="subtitle">Заезд завершён. Используй монеты для новых улучшений и попробуй заработать ещё больше.</p>
+          </div>
+          <div class="money-pill" id="resultBank">0 ₽</div>
+        </div>
+        <div class="results-grid">
+          <div class="card">
+            <div class="small">Заработано</div>
+            <div class="big" id="resultRunMoney">0 ₽</div>
+          </div>
+          <div class="card">
+            <div class="small">Поглощено объектов</div>
+            <div class="big" id="resultConsumed">0</div>
+          </div>
+          <div class="card">
+            <div class="small">Финальный размер</div>
+            <div class="big" id="resultSize">1.0x</div>
+          </div>
+          <div class="card">
+            <div class="small">Лучший доход</div>
+            <div class="big" id="bestRun">0 ₽</div>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="restartButton">Играть снова</button>
+          <button class="secondary" id="upgradeFromResultButton">Прокачка</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="upgradeScreen">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="title">Древо прокачки</div>
+            <p class="subtitle">Покупай улучшения за накопленные деньги. Некоторые узлы откроются только после предыдущих.</p>
+          </div>
+          <div class="money-pill" id="upgradeBank">0 ₽</div>
+        </div>
+        <div class="tree-wrap" id="treeWrap">
+          <svg id="treeLines" preserveAspectRatio="none"></svg>
+          <div class="tree" id="upgradeTree"></div>
+        </div>
+        <div class="button-row" style="margin-top: 14px;">
+          <button id="closeUpgradeButton">К игре</button>
+          <button class="secondary" id="resetProgressButton">Сбросить прогресс</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const hud = document.getElementById('hud');
+      const runMoneyEl = document.getElementById('runMoney');
+      const holeSizeEl = document.getElementById('holeSize');
+      const fuelFillEl = document.getElementById('fuelFill');
+      const touchHint = document.getElementById('touchHint');
+      const startScreen = document.getElementById('startScreen');
+      const resultScreen = document.getElementById('resultScreen');
+      const upgradeScreen = document.getElementById('upgradeScreen');
+      const bankValueEl = document.getElementById('bankValue');
+      const resultBankEl = document.getElementById('resultBank');
+      const resultRunMoneyEl = document.getElementById('resultRunMoney');
+      const resultConsumedEl = document.getElementById('resultConsumed');
+      const resultSizeEl = document.getElementById('resultSize');
+      const bestRunEl = document.getElementById('bestRun');
+      const upgradeBankEl = document.getElementById('upgradeBank');
+      const upgradeTreeEl = document.getElementById('upgradeTree');
+      const treeWrapEl = document.getElementById('treeWrap');
+      const treeLinesEl = document.getElementById('treeLines');
+
+      const STORAGE_KEY = 'idle-hole-upgrades-v1';
+      const STATE_KEY = 'idle-hole-state-v1';
+      const DPR_LIMIT = 2;
+      const OBJECT_TYPES = [
+        { key: 'small', label: 'Мелкий', minTime: 0, radius: 10, sizeFactor: 0.9, reward: 8, color: '#6bc5ff' },
+        { key: 'medium', label: 'Средний', minTime: 10, radius: 16, sizeFactor: 1.28, reward: 20, color: '#7fe089' },
+        { key: 'large', label: 'Крупный', minTime: 22, radius: 24, sizeFactor: 1.72, reward: 46, color: '#ff9a62' }
+      ];
+
+      const upgrades = [
+        { id: 'fuel_1', name: '+ макс. топливо', desc: 'Увеличивает запас топлива на 18%.', cost: 120, growth: 1.65, effect: { maxFuel: 0.18 }, requires: [], tier: 0 },
+        { id: 'speed_1', name: '+ скорость', desc: 'Люк быстрее догоняет палец.', cost: 140, growth: 1.7, effect: { moveSpeed: 0.16 }, requires: [], tier: 0 },
+        { id: 'growth_1', name: '+ рост', desc: 'Пассивный рост и рост за мусор усиливаются.', cost: 180, growth: 1.8, effect: { growthSpeed: 0.18 }, requires: ['fuel_1'], tier: 1 },
+        { id: 'money_1', name: '+ деньги', desc: 'Каждый поглощённый объект приносит больше.', cost: 200, growth: 1.85, effect: { money: 0.22 }, requires: ['speed_1'], tier: 1 },
+        { id: 'radius_1', name: '+ радиус', desc: 'Увеличивает зону поглощения вокруг люка.', cost: 230, growth: 1.9, effect: { absorbRadius: 0.16 }, requires: ['growth_1', 'money_1'], tier: 2 },
+        { id: 'fuel_2', name: 'Топливный бак', desc: 'Ещё +22% к максимальному топливу.', cost: 320, growth: 2.05, effect: { maxFuel: 0.22 }, requires: ['radius_1'], tier: 3 },
+        { id: 'speed_2', name: 'Рывок', desc: 'Ещё +18% к скорости движения.', cost: 360, growth: 2.1, effect: { moveSpeed: 0.18 }, requires: ['radius_1'], tier: 3 },
+        { id: 'money_2', name: 'Премиум-лом', desc: 'Ещё +26% к доходу с объектов.', cost: 420, growth: 2.2, effect: { money: 0.26 }, requires: ['fuel_2'], tier: 4 },
+        { id: 'growth_2', name: 'Ненасытность', desc: 'Ещё +22% к скорости роста.', cost: 440, growth: 2.2, effect: { growthSpeed: 0.22 }, requires: ['speed_2'], tier: 4 },
+        { id: 'radius_2', name: 'Широкий зев', desc: 'Ещё +18% к радиусу поглощения.', cost: 520, growth: 2.3, effect: { absorbRadius: 0.18 }, requires: ['money_2', 'growth_2'], tier: 5 }
+      ];
+
+      const defaultProgress = {
+        bank: 0,
+        bestRun: 0,
+        bought: {}
+      };
+
+      let viewport = { width: 360, height: 640, dpr: 1 };
+      let gameState = null;
+      let progress = loadProgress();
+      let currentScreen = 'start';
+      let pointerActive = false;
+      let target = { x: 0, y: 0 };
+      let hintTimer = 4;
+      let audioContext = null;
+      let lastTime = 0;
+      let animationId = 0;
+
+      function loadProgress() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : null;
+          return {
+            bank: parsed?.bank || 0,
+            bestRun: parsed?.bestRun || 0,
+            bought: parsed?.bought || {}
+          };
+        } catch (error) {
+          return { ...defaultProgress };
+        }
+      }
+
+      function saveProgress() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      }
+
+      function loadSessionState() {
+        try {
+          const raw = localStorage.getItem(STATE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function saveSessionState(name) {
+        localStorage.setItem(STATE_KEY, JSON.stringify({ screen: name }));
+      }
+
+      function getUpgradeLevel(id) {
+        return progress.bought[id] || 0;
+      }
+
+      function getUpgradeCost(upgrade) {
+        return Math.round(upgrade.cost * Math.pow(upgrade.growth, getUpgradeLevel(upgrade.id)));
+      }
+
+      function computeModifiers() {
+        return upgrades.reduce((mods, upgrade) => {
+          const level = getUpgradeLevel(upgrade.id);
+          if (!level) return mods;
+          Object.entries(upgrade.effect).forEach(([key, value]) => {
+            mods[key] = (mods[key] || 0) + value * level;
+          });
+          return mods;
+        }, {
+          maxFuel: 0,
+          moveSpeed: 0,
+          growthSpeed: 0,
+          money: 0,
+          absorbRadius: 0
+        });
+      }
+
+      function getConfig() {
+        const mods = computeModifiers();
+        return {
+          baseHoleRadius: Math.max(18, Math.min(viewport.width, viewport.height) * 0.055),
+          maxFuel: 38 * (1 + mods.maxFuel),
+          fuelDrain: 5.3,
+          moveSpeed: Math.min(viewport.width, viewport.height) * (0.68 + mods.moveSpeed),
+          passiveGrowth: 0.52 * (1 + mods.growthSpeed),
+          consumeGrowth: 0.085 * (1 + mods.growthSpeed),
+          moneyMultiplier: 1 + mods.money,
+          absorbRadius: 1 + mods.absorbRadius,
+          spawnEvery: 0.66,
+          maxObjects: 34
+        };
+      }
+
+      function createGameState() {
+        const config = getConfig();
+        const radius = config.baseHoleRadius;
+        return {
+          running: false,
+          ended: false,
+          config,
+          width: viewport.width,
+          height: viewport.height,
+          hole: {
+            x: viewport.width / 2,
+            y: viewport.height * 0.62,
+            radius,
+            visualRadius: radius,
+            pulse: 0
+          },
+          fuel: config.maxFuel,
+          runMoney: 0,
+          consumed: 0,
+          elapsed: 0,
+          spawnTimer: 0,
+          objects: [],
+          particles: []
+        };
+      }
+
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function pickObjectType(time) {
+        const available = OBJECT_TYPES.filter((item) => time >= item.minTime);
+        const roll = Math.random();
+        if (available.length === 1) return available[0];
+        if (available.length === 2) return roll < 0.74 ? available[0] : available[1];
+        if (roll < 0.54) return available[0];
+        if (roll < 0.84) return available[1];
+        return available[2];
+      }
+
+      function spawnObject() {
+        if (!gameState || gameState.objects.length >= gameState.config.maxObjects) return;
+        const type = pickObjectType(gameState.elapsed);
+        const baseRadius = type.radius * randomBetween(0.88, 1.14);
+        const padding = 26 + baseRadius;
+        const obj = {
+          type: type.key,
+          x: randomBetween(padding, gameState.width - padding),
+          y: randomBetween(padding + 54, gameState.height - padding),
+          radius: baseRadius,
+          visualRadius: baseRadius,
+          rotation: randomBetween(0, Math.PI * 2),
+          spin: randomBetween(-1.2, 1.2),
+          value: Math.round(type.reward * randomBetween(0.9, 1.18)),
+          sizeFactor: type.sizeFactor * randomBetween(0.94, 1.08),
+          color: type.color,
+          consuming: false,
+          consumeT: 0,
+          driftX: randomBetween(-14, 14),
+          driftY: randomBetween(-14, 14),
+          seed: Math.random() * 1000
+        };
+        const safeDistance = gameState.hole.radius * 4 + obj.radius;
+        if (Math.hypot(obj.x - gameState.hole.x, obj.y - gameState.hole.y) < safeDistance) {
+          obj.x = clamp(obj.x + safeDistance * 0.35, padding, gameState.width - padding);
+          obj.y = clamp(obj.y - safeDistance * 0.25, padding + 54, gameState.height - padding);
+        }
+        gameState.objects.push(obj);
+      }
+
+      function updateObjects(dt) {
+        const hole = gameState.hole;
+        const absorbRange = hole.radius * 1.15 * gameState.config.absorbRadius;
+
+        for (let i = gameState.objects.length - 1; i >= 0; i -= 1) {
+          const obj = gameState.objects[i];
+          obj.rotation += obj.spin * dt;
+          const wobble = Math.sin(gameState.elapsed * 0.8 + obj.seed) * 0.25;
+          obj.x = clamp(obj.x + obj.driftX * wobble * dt, obj.radius + 10, gameState.width - obj.radius - 10);
+          obj.y = clamp(obj.y + obj.driftY * wobble * dt, obj.radius + 52, gameState.height - obj.radius - 10);
+
+          const dx = hole.x - obj.x;
+          const dy = hole.y - obj.y;
+          const distance = Math.hypot(dx, dy);
+          const canConsume = obj.sizeFactor * obj.radius <= absorbRange;
+
+          if (canConsume && distance < absorbRange + obj.radius * 0.45) {
+            obj.consuming = true;
+            obj.consumeT += dt * 3.6;
+            obj.x += dx * dt * (2.8 + obj.consumeT * 0.9);
+            obj.y += dy * dt * (2.8 + obj.consumeT * 0.9);
+            obj.visualRadius = obj.radius * (1 - Math.min(obj.consumeT * 0.86, 0.96));
+
+            if (distance < hole.radius * 0.35 || obj.consumeT >= 1) {
+              consumeObject(obj);
+              gameState.objects.splice(i, 1);
+            }
+          } else {
+            obj.consuming = false;
+            obj.consumeT = 0;
+            obj.visualRadius += (obj.radius - obj.visualRadius) * Math.min(1, dt * 8);
+          }
+        }
+      }
+
+      function consumeObject(obj) {
+        const growth = obj.radius * gameState.config.consumeGrowth;
+        gameState.hole.radius += growth;
+        gameState.runMoney += Math.round(obj.value * gameState.config.moneyMultiplier);
+        gameState.consumed += 1;
+        gameState.hole.pulse = 1;
+        for (let i = 0; i < 6; i += 1) {
+          gameState.particles.push({
+            x: obj.x,
+            y: obj.y,
+            vx: randomBetween(-32, 32),
+            vy: randomBetween(-32, 32),
+            life: randomBetween(0.25, 0.45),
+            ttl: randomBetween(0.25, 0.45),
+            radius: randomBetween(2, 4),
+            color: obj.color
+          });
+        }
+        playConsumeSound();
+      }
+
+      function updateParticles(dt) {
+        for (let i = gameState.particles.length - 1; i >= 0; i -= 1) {
+          const p = gameState.particles[i];
+          p.life -= dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+          if (p.life <= 0) {
+            gameState.particles.splice(i, 1);
+          }
+        }
+      }
+
+      function updateHole(dt) {
+        const hole = gameState.hole;
+        const dx = target.x - hole.x;
+        const dy = target.y - hole.y;
+        const distance = Math.hypot(dx, dy);
+        const speed = gameState.config.moveSpeed;
+        if (distance > 0.5) {
+          const step = Math.min(distance, speed * dt);
+          hole.x += (dx / distance) * step;
+          hole.y += (dy / distance) * step;
+        }
+        hole.radius += gameState.config.passiveGrowth * dt;
+        const maxRadius = Math.min(gameState.width, gameState.height) * 0.22;
+        hole.radius = Math.min(hole.radius, maxRadius);
+        const margin = hole.radius * 0.84;
+        hole.x = clamp(hole.x, margin, gameState.width - margin);
+        hole.y = clamp(hole.y, margin + 36, gameState.height - margin);
+        hole.visualRadius += (hole.radius - hole.visualRadius) * Math.min(1, dt * 7);
+        hole.pulse = Math.max(0, hole.pulse - dt * 1.7);
+      }
+
+      function updateGame(dt) {
+        if (!gameState || !gameState.running || gameState.ended) return;
+        gameState.elapsed += dt;
+        gameState.spawnTimer += dt;
+        gameState.fuel = Math.max(0, gameState.fuel - gameState.config.fuelDrain * dt);
+
+        while (gameState.spawnTimer >= gameState.config.spawnEvery) {
+          gameState.spawnTimer -= gameState.config.spawnEvery;
+          spawnObject();
+        }
+
+        if (gameState.objects.length < 8) {
+          spawnObject();
+        }
+
+        updateHole(dt);
+        updateObjects(dt);
+        updateParticles(dt);
+
+        if (gameState.fuel <= 0) {
+          endRun();
+        }
+      }
+
+      function drawGround() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, viewport.height);
+        gradient.addColorStop(0, '#efe7d5');
+        gradient.addColorStop(1, '#caba92');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, viewport.width, viewport.height);
+
+        ctx.fillStyle = 'rgba(116, 91, 54, 0.08)';
+        const tile = Math.max(38, viewport.width * 0.14);
+        for (let y = 0; y < viewport.height + tile; y += tile) {
+          for (let x = 0; x < viewport.width + tile; x += tile) {
+            const offset = ((x / tile) + (y / tile)) % 2 === 0 ? 0.16 : 0.08;
+            ctx.beginPath();
+            ctx.arc(x, y, tile * offset, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawObject(obj) {
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+        ctx.rotate(obj.rotation);
+        ctx.scale(1, 0.94);
+        const radius = Math.max(1, obj.visualRadius);
+        ctx.fillStyle = obj.color;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx.lineWidth = 2;
+
+        switch (obj.type) {
+          case 'small':
+            ctx.beginPath();
+            ctx.roundRect(-radius, -radius * 0.75, radius * 2, radius * 1.5, radius * 0.4);
+            ctx.fill();
+            ctx.stroke();
+            break;
+          case 'medium':
+            ctx.beginPath();
+            ctx.moveTo(-radius, -radius * 0.55);
+            ctx.lineTo(radius * 0.35, -radius);
+            ctx.lineTo(radius, radius * 0.2);
+            ctx.lineTo(radius * 0.1, radius);
+            ctx.lineTo(-radius * 0.86, radius * 0.35);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            break;
+          default:
+            ctx.beginPath();
+            ctx.roundRect(-radius * 1.05, -radius * 0.82, radius * 2.1, radius * 1.64, radius * 0.24);
+            ctx.fill();
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(-radius * 0.8, 0);
+            ctx.lineTo(radius * 0.8, 0);
+            ctx.stroke();
+            break;
+        }
+        ctx.restore();
+      }
+
+      function drawHole() {
+        const hole = gameState.hole;
+        const outerRadius = hole.visualRadius * (1.24 + hole.pulse * 0.08);
+        const innerRadius = hole.visualRadius * (0.86 + hole.pulse * 0.06);
+
+        ctx.save();
+        ctx.translate(hole.x, hole.y);
+        const shadow = ctx.createRadialGradient(0, 0, innerRadius * 0.25, 0, 0, outerRadius * 1.1);
+        shadow.addColorStop(0, 'rgba(0,0,0,0.92)');
+        shadow.addColorStop(0.62, 'rgba(16,16,18,0.98)');
+        shadow.addColorStop(1, 'rgba(52,30,4,0)');
+        ctx.fillStyle = shadow;
+        ctx.beginPath();
+        ctx.arc(0, 0, outerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(82, 54, 14, 0.18)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, outerRadius * 1.08, outerRadius * 0.84, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#020202';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, innerRadius, innerRadius * 0.78, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        gameState.particles.forEach((p) => {
+          const alpha = Math.max(0, p.life / p.ttl);
+          ctx.fillStyle = p.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * alpha, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function drawScene() {
+        drawGround();
+        if (!gameState) return;
+        gameState.objects.forEach(drawObject);
+        drawParticles();
+        drawHole();
+      }
+
+      function updateHud() {
+        if (!gameState) return;
+        runMoneyEl.textContent = formatMoney(gameState.runMoney);
+        holeSizeEl.textContent = `${(gameState.hole.radius / gameState.config.baseHoleRadius).toFixed(1)}x`;
+        fuelFillEl.style.transform = `scaleX(${gameState.fuel / gameState.config.maxFuel})`;
+        touchHint.style.opacity = hintTimer > 0 ? '0.92' : '0';
+        bankValueEl.textContent = `${formatMoney(progress.bank)}`;
+        resultBankEl.textContent = `${formatMoney(progress.bank)}`;
+        upgradeBankEl.textContent = `${formatMoney(progress.bank)}`;
+      }
+
+      function formatMoney(value) {
+        return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
+      }
+
+      function showScreen(name) {
+        currentScreen = name;
+        saveSessionState(name);
+        startScreen.classList.toggle('visible', name === 'start');
+        resultScreen.classList.toggle('visible', name === 'result');
+        upgradeScreen.classList.toggle('visible', name === 'upgrade');
+        hud.style.display = name === 'play' ? 'flex' : 'none';
+        if (name === 'upgrade') {
+          renderUpgradeTree();
+          requestAnimationFrame(drawUpgradeLines);
+        }
+        updateHud();
+      }
+
+      function startRun() {
+        gameState = createGameState();
+        gameState.running = true;
+        target.x = gameState.hole.x;
+        target.y = gameState.hole.y;
+        hintTimer = 4;
+        for (let i = 0; i < 10; i += 1) {
+          spawnObject();
+        }
+        showScreen('play');
+      }
+
+      function endRun() {
+        if (!gameState || gameState.ended) return;
+        gameState.running = false;
+        gameState.ended = true;
+        progress.bank += gameState.runMoney;
+        progress.bestRun = Math.max(progress.bestRun, gameState.runMoney);
+        saveProgress();
+        resultRunMoneyEl.textContent = formatMoney(gameState.runMoney);
+        resultConsumedEl.textContent = `${gameState.consumed}`;
+        resultSizeEl.textContent = `${(gameState.hole.radius / gameState.config.baseHoleRadius).toFixed(1)}x`;
+        bestRunEl.textContent = formatMoney(progress.bestRun);
+        showScreen('result');
+      }
+
+      function canBuyUpgrade(upgrade) {
+        return upgrade.requires.every((id) => getUpgradeLevel(id) > 0);
+      }
+
+      function buyUpgrade(id) {
+        const upgrade = upgrades.find((item) => item.id === id);
+        if (!upgrade || !canBuyUpgrade(upgrade)) return;
+        const cost = getUpgradeCost(upgrade);
+        if (progress.bank < cost) return;
+        progress.bank -= cost;
+        progress.bought[id] = getUpgradeLevel(id) + 1;
+        saveProgress();
+        renderUpgradeTree();
+        drawUpgradeLines();
+        updateHud();
+      }
+
+      function renderUpgradeTree() {
+        upgradeTreeEl.innerHTML = '';
+        upgrades.forEach((upgrade) => {
+          const level = getUpgradeLevel(upgrade.id);
+          const unlocked = canBuyUpgrade(upgrade);
+          const cost = getUpgradeCost(upgrade);
+          const node = document.createElement('div');
+          node.className = `upgrade ${unlocked ? '' : 'locked'} ${level ? 'bought' : ''}`.trim();
+          node.dataset.id = upgrade.id;
+          node.innerHTML = `
+            <div class="upgrade-name">${upgrade.name}</div>
+            <div class="upgrade-desc">${upgrade.desc}</div>
+            <div class="upgrade-meta">
+              <span>Уровень ${level}</span>
+              <span>${formatMoney(cost)}</span>
+            </div>
+          `;
+          const button = document.createElement('button');
+          button.textContent = unlocked ? 'Купить' : 'Нужно открыть';
+          button.disabled = !unlocked || progress.bank < cost;
+          button.addEventListener('click', () => buyUpgrade(upgrade.id));
+          node.appendChild(button);
+          upgradeTreeEl.appendChild(node);
+        });
+      }
+
+      function drawUpgradeLines() {
+        const wrapRect = treeWrapEl.getBoundingClientRect();
+        treeLinesEl.setAttribute('viewBox', `0 0 ${wrapRect.width} ${wrapRect.height}`);
+        treeLinesEl.innerHTML = '';
+
+        upgrades.forEach((upgrade) => {
+          if (!upgrade.requires.length) return;
+          const child = upgradeTreeEl.querySelector(`[data-id="${upgrade.id}"]`);
+          if (!child) return;
+          const childRect = child.getBoundingClientRect();
+          upgrade.requires.forEach((reqId) => {
+            const parent = upgradeTreeEl.querySelector(`[data-id="${reqId}"]`);
+            if (!parent) return;
+            const parentRect = parent.getBoundingClientRect();
+            const x1 = parentRect.left + parentRect.width / 2 - wrapRect.left;
+            const y1 = parentRect.bottom - wrapRect.top;
+            const x2 = childRect.left + childRect.width / 2 - wrapRect.left;
+            const y2 = childRect.top - wrapRect.top;
+            const midY = (y1 + y2) / 2;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', 'rgba(255,255,255,0.18)');
+            path.setAttribute('stroke-width', '3');
+            path.setAttribute('stroke-linecap', 'round');
+            treeLinesEl.appendChild(path);
+          });
+        });
+      }
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, DPR_LIMIT);
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        viewport = { width, height, dpr };
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (gameState) {
+          const prevWidth = gameState.width || width;
+          const prevHeight = gameState.height || height;
+          const scaleX = width / prevWidth;
+          const scaleY = height / prevHeight;
+          gameState.width = width;
+          gameState.height = height;
+          gameState.hole.x *= scaleX;
+          gameState.hole.y *= scaleY;
+          gameState.objects.forEach((obj) => {
+            obj.x *= scaleX;
+            obj.y *= scaleY;
+          });
+        }
+        requestAnimationFrame(drawUpgradeLines);
+      }
+
+      function getPointFromEvent(event) {
+        if (event.touches && event.touches[0]) {
+          return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+        }
+        if (event.changedTouches && event.changedTouches[0]) {
+          return { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY };
+        }
+        return { x: event.clientX, y: event.clientY };
+      }
+
+      function updateTargetFromEvent(event) {
+        if (!gameState || currentScreen !== 'play') return;
+        const point = getPointFromEvent(event);
+        target.x = clamp(point.x, 0, viewport.width);
+        target.y = clamp(point.y, 0, viewport.height);
+      }
+
+      function onPointerDown(event) {
+        if (currentScreen !== 'play') return;
+        pointerActive = true;
+        hintTimer = 0;
+        updateTargetFromEvent(event);
+        event.preventDefault();
+        initAudio();
+      }
+
+      function onPointerMove(event) {
+        if (!pointerActive || currentScreen !== 'play') return;
+        updateTargetFromEvent(event);
+        event.preventDefault();
+      }
+
+      function onPointerUp(event) {
+        if (!pointerActive) return;
+        pointerActive = false;
+        updateTargetFromEvent(event);
+      }
+
+      function initAudio() {
+        if (audioContext) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        audioContext = new AudioCtx();
+      }
+
+      function playConsumeSound() {
+        if (!audioContext) return;
+        if (audioContext.state === 'suspended') {
+          audioContext.resume().catch(() => {});
+        }
+        const now = audioContext.currentTime;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(180, now);
+        oscillator.frequency.exponentialRampToValueAtTime(72, now + 0.08);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.05, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.1);
+      }
+
+      function resetProgress() {
+        progress = { ...defaultProgress, bought: {} };
+        saveProgress();
+        renderUpgradeTree();
+        drawUpgradeLines();
+        updateHud();
+      }
+
+      function loop(timestamp) {
+        const delta = Math.min(0.032, (timestamp - lastTime) / 1000 || 0.016);
+        lastTime = timestamp;
+        if (gameState && currentScreen === 'play') {
+          updateGame(delta);
+          if (hintTimer > 0) hintTimer -= delta;
+        }
+        drawScene();
+        updateHud();
+        animationId = requestAnimationFrame(loop);
+      }
+
+      document.getElementById('startButton').addEventListener('click', startRun);
+      document.getElementById('restartButton').addEventListener('click', startRun);
+      document.getElementById('openUpgradeButton').addEventListener('click', () => showScreen('upgrade'));
+      document.getElementById('upgradeFromResultButton').addEventListener('click', () => showScreen('upgrade'));
+      document.getElementById('closeUpgradeButton').addEventListener('click', () => showScreen(gameState?.ended ? 'result' : 'start'));
+      document.getElementById('resetProgressButton').addEventListener('click', resetProgress);
+
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', resize);
+      window.addEventListener('pointerdown', onPointerDown, { passive: false });
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
+      window.addEventListener('pointerup', onPointerUp, { passive: true });
+      window.addEventListener('pointercancel', onPointerUp, { passive: true });
+      window.addEventListener('touchstart', onPointerDown, { passive: false });
+      window.addEventListener('touchmove', onPointerMove, { passive: false });
+      window.addEventListener('touchend', onPointerUp, { passive: true });
+
+      resize();
+      renderUpgradeTree();
+      const savedSession = loadSessionState();
+      showScreen(savedSession?.screen === 'upgrade' ? 'upgrade' : 'start');
+      lastTime = performance.now();
+      animationId = requestAnimationFrame(loop);
+
+      window.addEventListener('beforeunload', () => cancelAnimationFrame(animationId));
+    })();
+  </script>
+</body>
+</html>
